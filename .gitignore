@@ -1,0 +1,6 @@
+/.env
+/appsettings.json
+/appsettings.Development.json
+/OTPBUILDAPI.http
+/Properties/
+TodoAPI/
