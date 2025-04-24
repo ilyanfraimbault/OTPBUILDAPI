@@ -13,8 +13,8 @@ public class SummonersController(ApplicationDbContext context) : ControllerBase
     public async Task<ActionResult<IEnumerable<Summoner>>> GetSummoners(int page = 1, int pageSize = 50)
     {
         var summoners = await context.Summoners
-            .Skip((page - 1) * pageSize)  // Saute les pages précédentes
-            .Take(pageSize)               // Limite le nombre de résultats
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
         return Ok(summoners);
