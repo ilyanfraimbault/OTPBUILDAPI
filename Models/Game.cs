@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OTPBUILDAPI.Models;
 
@@ -32,4 +31,6 @@ public class Game
 
     [Required]
     public int Winner { get; set; }
+
+    public ICollection<Participant> Participants { get; set; }
 }

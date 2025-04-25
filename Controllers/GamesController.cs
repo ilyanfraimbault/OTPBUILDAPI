@@ -13,13 +13,86 @@ public class GamesController : ControllerBase
 
     public GamesController(ApplicationDbContext context)
     {
-        _context = context;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Game>>> GetGames()
+    public async Task<IActionResult> GetGames(int page = 1, int pageSize = 50)
     {
-        return await _context.Games.ToListAsync();
+        try
+        {
+            var totalGames = await _context.Games.CountAsync();
+            var games = await _context.Games
+                .Include(g => g.Participants)
+                .ThenInclude(p => p.Perks)
+                .ThenInclude(perks => perks.PrimaryStyle)
+                .Include(g => g.Participants)
+                .ThenInclude(p => p.Perks)
+                .ThenInclude(perks => perks.SecondaryStyle)
+                .Include(g => g.Participants)
+                .ThenInclude(p => p.Summoner)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            if (!games.Any())
+            {
+                return NotFound(new { Message = "Aucun jeu trouvé." });
+            }
+
+            var result = new
+            {
+                TotalCount = totalGames,
+                Page = page,
+                PageSize = pageSize,
+                Games = games.Select(game => new
+                {
+                    game.GameId,
+                    game.GameDuration,
+                    game.GameStartTimestamp,
+                    game.GameVersion,
+                    game.GameType,
+                    game.MatchId,
+                    game.PlatformId,
+                    game.Winner,
+                    Participants = game.Participants.Select(participant => new
+                    {
+                        participant.SummonerPuuid,
+                        participant.Champion,
+                        participant.TeamId,
+                        participant.Kills,
+                        participant.Deaths,
+                        participant.Assists,
+                        Perks = new
+                        {
+                            participant.Perks.StatPerks,
+                            participant.Perks.PrimaryStyle,
+                            participant.Perks.SecondaryStyle
+                        },
+                        Summoner = new
+                        {
+                            participant.Summoner.AccountId,
+                            participant.Summoner.GameName,
+                            participant.Summoner.TagLine,
+                            participant.Summoner.Id,
+                            participant.Summoner.Level,
+                            participant.Summoner.Name,
+                            participant.Summoner.Puuid,
+                            participant.Summoner.ProfileIconId,
+                            participant.Summoner.RevisionDate,
+                            participant.Summoner.PlatformId
+                        }
+                    }).ToList()
+                })
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur interne : {ex.Message}");
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     [HttpGet("{id:long}")]
@@ -30,6 +103,7 @@ public class GamesController : ControllerBase
         {
             return NotFound();
         }
+
         return game;
     }
 
@@ -79,5 +153,30 @@ public class GamesController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpGet("{id:long}/details")]
+    public async Task<IActionResult> GetGameDetails(long id)
+    {
+        Console.WriteLine($"Attempting to retrieve game with ID: {id}");
+
+        var game = await _context.Games
+            .Include(g => g.Participants)
+            .ThenInclude(p => p.Perks)
+            .ThenInclude(perks => perks.PrimaryStyle)
+            .Include(g => g.Participants)
+            .ThenInclude(p => p.Perks)
+            .ThenInclude(perks => perks.SecondaryStyle)
+            .Include(g => g.Participants)
+            .ThenInclude(p => p.Summoner)
+            .FirstOrDefaultAsync(g => g.GameId == id);
+
+
+        if (game == null)
+        {
+            return NotFound(new { Message = "No game found with this ID." });
+        }
+
+        return Ok(game);
     }
 }
