@@ -22,7 +22,8 @@ public class ApplicationDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<PerksStyle>()
-            .HasIndex(p => new {
+            .HasIndex(p => new
+            {
                 p.Description,
                 p.Style,
                 p.StyleSelection1,
@@ -45,5 +46,33 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Participant>()
             .HasKey(p => new { p.GameId, p.SummonerPuuid });
+
+        modelBuilder.Entity<Game>()
+            .HasMany(g => g.Participants)
+            .WithOne(p => p.Game)
+            .HasForeignKey(p => p.GameId);
+
+        modelBuilder.Entity<Participant>()
+            .HasOne(p => p.Perks)
+            .WithMany()
+            .HasForeignKey(p => p.PerksId)  // Utilisez PerksId ici
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Perks>()
+            .HasOne(p => p.PrimaryStyle)
+            .WithMany()
+            .HasForeignKey(p => p.PrimaryStyleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Perks>()
+            .HasOne(p => p.SecondaryStyle)
+            .WithMany()
+            .HasForeignKey(p => p.SecondaryStyleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Participant>()
+            .HasOne(p => p.Summoner)
+            .WithMany()
+            .HasForeignKey(p => p.SummonerPuuid);
     }
 }
