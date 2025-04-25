@@ -29,23 +29,23 @@ public class StatPerksController(ApplicationDbContext context) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<StatPerks>> PostStatPerks(StatPerks statPerks)
+    public async Task<ActionResult<StatPerks>> PostStatPerks(StatPerks statPerk)
     {
-        context.StatPerks.Add(statPerks);
+        context.StatPerks.Add(statPerk);
         await context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetStatPerks), new { id = statPerks.Id }, statPerks);
+        return CreatedAtAction(nameof(GetStatPerks), new { id = statPerk.Id }, statPerk);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutStatPerks(int id, StatPerks statPerks)
+    public async Task<IActionResult> PutStatPerks(int id, StatPerks statPerk)
     {
-        if (id != statPerks.Id)
+        if (id != statPerk.Id)
         {
             return BadRequest();
         }
 
-        context.Entry(statPerks).State = EntityState.Modified;
+        context.Entry(statPerk).State = EntityState.Modified;
         await context.SaveChangesAsync();
 
         return NoContent();

@@ -35,23 +35,23 @@ public class PerksController(ApplicationDbContext context) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Perks>> PostPerk(Perks perk)
+    public async Task<ActionResult<Perks>> PostPerk(Perks perks)
     {
-        context.Perks.Add(perk);
+        context.Perks.Add(perks);
         await context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetPerk), new { id = perk.Id }, perk);
+        return CreatedAtAction(nameof(GetPerk), new { id = perks.Id }, perks);
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> UpdatePerk(int id, Perks perk)
+    public async Task<IActionResult> UpdatePerk(int id, Perks perks)
     {
-        if (id != perk.Id)
+        if (id != perks.Id)
         {
             return BadRequest();
         }
 
-        context.Entry(perk).State = EntityState.Modified;
+        context.Entry(perks).State = EntityState.Modified;
 
         try
         {

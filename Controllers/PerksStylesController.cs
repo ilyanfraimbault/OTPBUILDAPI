@@ -10,9 +10,24 @@ namespace OTPBUILDAPI.Controllers;
 public class PerksStylesController(ApplicationDbContext context) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PerksStyle>>> GetPerksStyles()
+    public async Task<IActionResult> GetPerksStyles()
     {
-        return await context.PerksStyles.ToListAsync();
+        try
+        {
+            var perksStyles = await context.PerksStyles.ToListAsync();
+
+            if (!perksStyles.Any())
+            {
+                return NotFound(new { Message = "Aucun style de perks trouvé." });
+            }
+
+            return Ok(perksStyles);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur interne : {ex.Message}");
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     [HttpGet("{id:int}")]
