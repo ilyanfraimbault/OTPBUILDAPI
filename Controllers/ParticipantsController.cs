@@ -9,16 +9,6 @@ namespace OTPBUILDAPI.Controllers;
 [Route("api/[controller]")]
 public class ParticipantsController(ApplicationDbContext context) : ControllerBase
 {
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Participant>>> GetParticipants()
-    {
-        return await context.Participants
-            .Include(p => p.Game)
-            .Include(p => p.Summoner)
-            .Include(p => p.Perks)
-            .ToListAsync();
-    }
-
     [HttpGet("{gameId:long}/{puuid}")]
     public async Task<ActionResult<Participant>> GetParticipant(long gameId, string puuid)
     {

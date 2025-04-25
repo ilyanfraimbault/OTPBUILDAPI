@@ -7,22 +7,16 @@ namespace OTPBUILDAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class GamesController : ControllerBase
+public class GamesController(ApplicationDbContext context) : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-
-    public GamesController(ApplicationDbContext context)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-    }
-
     [HttpGet]
     public async Task<IActionResult> GetGames(int page = 1, int pageSize = 50)
     {
         try
         {
-            var totalGames = await _context.Games.CountAsync();
-            var games = await _context.Games
+            var totalGames = await context.Games.CountAsync();
+            var games = await context.Games
+                .OrderBy(g => g.GameId)
                 .Include(g => g.Participants)
                 .ThenInclude(p => p.Perks)
                 .ThenInclude(perks => perks.PrimaryStyle)
@@ -90,7 +84,6 @@ public class GamesController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erreur interne : {ex.Message}");
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
@@ -98,40 +91,48 @@ public class GamesController : ControllerBase
     [HttpGet("{id:long}")]
     public async Task<ActionResult<Game>> GetGame(long id)
     {
-        var game = await _context.Games.FindAsync(id);
+        var game = await context.Games
+            .Include(g => g.Participants)
+            .ThenInclude(p => p.Perks)
+            .ThenInclude(perks => perks.PrimaryStyle)
+            .Include(game => game.Participants)
+            .ThenInclude(participant => participant.Perks).ThenInclude(perks => perks.SecondaryStyle)
+            .Include(game => game.Participants).ThenInclude(participant => participant.Perks)
+            .ThenInclude(perks => perks.StatPerks)
+            .Include(g => g.Participants)
+            .ThenInclude(p => p.Summoner)
+            .FirstOrDefaultAsync(g => g.GameId == id);
+
         if (game == null)
         {
-            return NotFound();
+            return NotFound(new { Message = "No game found with this ID." });
         }
 
-        return game;
+        return Ok(game);
     }
 
     [HttpPost]
     public async Task<ActionResult<Game>> PostGame(Game game)
     {
-        _context.Games.Add(game);
-        await _context.SaveChangesAsync();
+        context.Games.Add(game);
+        await context.SaveChangesAsync();
         return CreatedAtAction(nameof(GetGame), new { id = game.GameId }, game);
     }
 
     [HttpPut("{id:long}")]
     public async Task<IActionResult> PutGame(long id, Game game)
     {
-        if (id != game.GameId)
-        {
-            return BadRequest();
-        }
+        if (id != game.GameId) return BadRequest();
 
-        _context.Entry(game).State = EntityState.Modified;
+        context.Entry(game).State = EntityState.Modified;
 
         try
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!_context.Games.Any(g => g.GameId == id))
+            if (!context.Games.Any(g => g.GameId == id))
                 return NotFound();
 
             throw;
@@ -143,24 +144,29 @@ public class GamesController : ControllerBase
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteGame(long id)
     {
-        var game = await _context.Games.FindAsync(id);
+        var game = await context.Games.FindAsync(id);
         if (game == null)
         {
             return NotFound();
         }
 
-        _context.Games.Remove(game);
-        await _context.SaveChangesAsync();
+        context.Games.Remove(game);
+        await context.SaveChangesAsync();
 
         return NoContent();
     }
 
-    [HttpGet("{id:long}/details")]
-    public async Task<IActionResult> GetGameDetails(long id)
+    [HttpGet("by-puuid/{puuid}")]
+    public async Task<ActionResult<IEnumerable<Game>>> GetGamesByPuuid(
+        string puuid,
+        int page = 1,
+        int pageSize = 10)
     {
-        Console.WriteLine($"Attempting to retrieve game with ID: {id}");
+        if (page < 1 || pageSize < 1)
+            return BadRequest(new { Message = "Page et pageSize doivent être supérieurs à 0." });
 
-        var game = await _context.Games
+        var gamesQuery = context.Games
+            .Where(g => g.Participants.Any(p => p.SummonerPuuid == puuid))
             .Include(g => g.Participants)
             .ThenInclude(p => p.Perks)
             .ThenInclude(perks => perks.PrimaryStyle)
@@ -168,15 +174,26 @@ public class GamesController : ControllerBase
             .ThenInclude(p => p.Perks)
             .ThenInclude(perks => perks.SecondaryStyle)
             .Include(g => g.Participants)
+            .ThenInclude(p => p.Perks)
+            .ThenInclude(perks => perks.StatPerks)
+            .Include(g => g.Participants)
             .ThenInclude(p => p.Summoner)
-            .FirstOrDefaultAsync(g => g.GameId == id);
+            .OrderByDescending(g => g.GameStartTimestamp);
 
+        var totalGames = await gamesQuery.CountAsync();
 
-        if (game == null)
+        var games = await gamesQuery
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new
         {
-            return NotFound(new { Message = "No game found with this ID." });
-        }
-
-        return Ok(game);
+            Page = page,
+            PageSize = pageSize,
+            TotalGames = totalGames,
+            TotalPages = (int)Math.Ceiling(totalGames / (double)pageSize),
+            Games = games
+        });
     }
 }

@@ -25,7 +25,6 @@ public class PerksStylesController(ApplicationDbContext context) : ControllerBas
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erreur interne : {ex.Message}");
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
