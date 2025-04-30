@@ -16,6 +16,11 @@ public class ParticipantsController(ApplicationDbContext context) : ControllerBa
             .Include(p => p.Game)
             .Include(p => p.Summoner)
             .Include(p => p.Perks)
+            .ThenInclude(p => p.PrimaryStyle)
+            .Include(p => p.Perks)
+            .ThenInclude(p => p.SecondaryStyle)
+            .Include(p => p.Perks)
+            .ThenInclude(p => p.StatPerks)
             .FirstOrDefaultAsync(p => p.GameId == gameId && p.SummonerPuuid == puuid);
 
         if (participant == null)
@@ -24,41 +29,6 @@ public class ParticipantsController(ApplicationDbContext context) : ControllerBa
         }
 
         return participant;
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<Participant>> PostParticipant(Participant participant)
-    {
-        context.Participants.Add(participant);
-        await context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetParticipant), new { gameId = participant.GameId, puuid = participant.SummonerPuuid }, participant);
-    }
-
-    [HttpPut("{gameId:long}/{puuid}")]
-    public async Task<IActionResult> PutParticipant(long gameId, string puuid, Participant participant)
-    {
-        if (gameId != participant.GameId || puuid != participant.SummonerPuuid)
-        {
-            return BadRequest();
-        }
-
-        context.Entry(participant).State = EntityState.Modified;
-
-        try
-        {
-            await context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            var exists = await context.Participants.AnyAsync(p => p.GameId == gameId && p.SummonerPuuid == puuid);
-            if (!exists)
-                return NotFound();
-
-            throw;
-        }
-
-        return NoContent();
     }
 
     [HttpDelete("{gameId:long}/{puuid}")]

@@ -10,26 +10,19 @@ namespace OTPBUILDAPI.Controllers;
 public class GamesController(ApplicationDbContext context) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetGames(int page = 1, int pageSize = 50)
+    public async Task<IActionResult> GetGames(int page = 1, int pageSize = 20)
     {
         try
         {
             var totalGames = await context.Games.CountAsync();
-            var games = await context.Games
+            var gameIds = await context.Games
                 .OrderBy(g => g.GameId)
-                .Include(g => g.Participants)
-                .ThenInclude(p => p.Perks)
-                .ThenInclude(perks => perks.PrimaryStyle)
-                .Include(g => g.Participants)
-                .ThenInclude(p => p.Perks)
-                .ThenInclude(perks => perks.SecondaryStyle)
-                .Include(g => g.Participants)
-                .ThenInclude(p => p.Summoner)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(g => g.GameId) // Projection pour ne retourner que les IDs
                 .ToListAsync();
 
-            if (!games.Any())
+            if (!gameIds.Any())
             {
                 return NotFound(new { Message = "Aucun jeu trouvé." });
             }
@@ -39,45 +32,7 @@ public class GamesController(ApplicationDbContext context) : ControllerBase
                 TotalCount = totalGames,
                 Page = page,
                 PageSize = pageSize,
-                Games = games.Select(game => new
-                {
-                    game.GameId,
-                    game.GameDuration,
-                    game.GameStartTimestamp,
-                    game.GameVersion,
-                    game.GameType,
-                    game.MatchId,
-                    game.PlatformId,
-                    game.Winner,
-                    Participants = game.Participants.Select(participant => new
-                    {
-                        participant.SummonerPuuid,
-                        participant.Champion,
-                        participant.TeamId,
-                        participant.Kills,
-                        participant.Deaths,
-                        participant.Assists,
-                        Perks = new
-                        {
-                            participant.Perks.StatPerks,
-                            participant.Perks.PrimaryStyle,
-                            participant.Perks.SecondaryStyle
-                        },
-                        Summoner = new
-                        {
-                            participant.Summoner.AccountId,
-                            participant.Summoner.GameName,
-                            participant.Summoner.TagLine,
-                            participant.Summoner.Id,
-                            participant.Summoner.Level,
-                            participant.Summoner.Name,
-                            participant.Summoner.Puuid,
-                            participant.Summoner.ProfileIconId,
-                            participant.Summoner.RevisionDate,
-                            participant.Summoner.PlatformId
-                        }
-                    }).ToList()
-                })
+                GameIds = gameIds
             };
 
             return Ok(result);
@@ -160,7 +115,7 @@ public class GamesController(ApplicationDbContext context) : ControllerBase
     public async Task<ActionResult<IEnumerable<Game>>> GetGamesByPuuid(
         string puuid,
         int page = 1,
-        int pageSize = 10)
+        int pageSize = 20)
     {
         if (page < 1 || pageSize < 1)
             return BadRequest(new { Message = "Page et pageSize doivent être supérieurs à 0." });
