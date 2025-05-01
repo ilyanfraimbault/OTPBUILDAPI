@@ -1,5 +1,8 @@
 /.env
-/appsettings.json
-/appsettings.Development.json
+/appsettings*.json
 /OTPBUILDAPI.http
 /Properties/
+/bin/
+/obj/
+/.idea/
+/OTPBUILDAPI.*
