@@ -9,6 +9,25 @@ namespace OTPBUILDAPI.Controllers;
 [ApiController]
 public class SummonersController(ApplicationDbContext context) : ControllerBase
 {
+    [HttpGet("by-riot-id/{gameName}/{tagLine}")]
+    public async Task<IActionResult> GetSummonerByGameNameAndTagLine(string gameName, string tagLine)
+    {
+        if (string.IsNullOrWhiteSpace(gameName) || string.IsNullOrWhiteSpace(tagLine))
+        {
+            return BadRequest(new { Message = "GameName and TagLine are required." });
+        }
+
+        var summoner = await context.Summoners
+            .FirstOrDefaultAsync(s => s.GameName == gameName && s.TagLine == tagLine);
+
+        if (summoner == null)
+        {
+            return NotFound(new { Message = "No summoner found." });
+        }
+
+        return Ok(summoner);
+    }
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Summoner>>> GetSummoners(int page = 1, int pageSize = 50)
     {
@@ -20,7 +39,7 @@ public class SummonersController(ApplicationDbContext context) : ControllerBase
         return Ok(summoners);
     }
 
-    [HttpGet("{puuid}")]
+    [HttpGet("by-puuid/{puuid}")]
     public async Task<ActionResult<Summoner>> GetSummoner(string puuid)
     {
         var summoner = await context.Summoners.FindAsync(puuid);
