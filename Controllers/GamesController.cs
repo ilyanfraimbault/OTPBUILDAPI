@@ -9,7 +9,7 @@ namespace OTPBUILDAPI.Controllers;
 [Route("api/[controller]")]
 public class GamesController(ApplicationDbContext context) : ControllerBase
 {
-    [HttpGet]
+    [HttpGet("ids")]
     public async Task<IActionResult> GetGames(int page = 1, int pageSize = 20)
     {
         try
@@ -111,7 +111,7 @@ public class GamesController(ApplicationDbContext context) : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("by-puuid/{puuid}")]
+    [HttpGet("by-puuid/{puuid}/ids")]
     public async Task<ActionResult<IEnumerable<Game>>> GetGamesByPuuid(
         string puuid,
         int page = 1,
