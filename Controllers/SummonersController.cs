@@ -15,12 +15,26 @@ public class SummonersController(ApplicationDbContext context) : ControllerBase
         if (string.IsNullOrWhiteSpace(query))
             return BadRequest("Query is required");
 
-        query = query.ToLower();
+        IQueryable<Summoner> summonersQuery;
 
-        var results = await context.Summoners
-            .Where(x => x.GameName.ToLower().Contains(query) || x.TagLine.ToLower().Contains(query))
+        if (query.Contains("#"))
+        {
+            var parts = query.Split('#', 2);
+            var gameName = parts[0];
+            var tagLine = parts.Length > 1 ? parts[1] : string.Empty;
+
+            summonersQuery = context.Summoners
+                .Where(x => x.GameName == gameName && x.TagLine == tagLine);
+        }
+        else
+        {
+            summonersQuery = context.Summoners
+                .Where(x => x.GameName != null && x.GameName.ToLower().Contains(query.ToLower()));
+        }
+
+        var results = await summonersQuery
             .OrderBy(x => x.GameName)
-            .Take(10)
+            .Take(6)
             .Select(s => new
             {
                 s.Id,
