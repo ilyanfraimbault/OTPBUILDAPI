@@ -29,7 +29,10 @@ public class SummonersController(ApplicationDbContext context) : ControllerBase
                 s.GameName,
                 s.TagLine,
                 s.Level,
-                s.PlatformId
+                s.PlatformId,
+                s.ProfileIconId,
+                s.RevisionDate,
+                s.AccountId
             })
             .ToListAsync();
 
