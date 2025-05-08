@@ -9,6 +9,33 @@ namespace OTPBUILDAPI.Controllers;
 [ApiController]
 public class SummonersController(ApplicationDbContext context) : ControllerBase
 {
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchSummoners([FromQuery] string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest("Query is required");
+
+        query = query.ToLower();
+
+        var results = await context.Summoners
+            .Where(x => x.GameName.ToLower().Contains(query) || x.TagLine.ToLower().Contains(query))
+            .OrderBy(x => x.GameName)
+            .Take(10)
+            .Select(s => new
+            {
+                s.Id,
+                s.Name,
+                s.Puuid,
+                s.GameName,
+                s.TagLine,
+                s.Level,
+                s.PlatformId
+            })
+            .ToListAsync();
+
+        return Ok(results);
+    }
+
     [HttpGet("by-riot-id/{gameName}/{tagLine}")]
     public async Task<IActionResult> GetSummonerByGameNameAndTagLine(string gameName, string tagLine)
     {
