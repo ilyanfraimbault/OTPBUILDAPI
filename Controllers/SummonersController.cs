@@ -24,7 +24,10 @@ public class SummonersController(ApplicationDbContext context) : ControllerBase
             var tagLine = parts.Length > 1 ? parts[1] : string.Empty;
 
             summonersQuery = context.Summoners
-                .Where(x => x.GameName == gameName && x.TagLine == tagLine);
+                .Where(x => x.GameName != null
+                            && x.TagLine != null
+                            && x.GameName.Equals(gameName, StringComparison.CurrentCultureIgnoreCase)
+                            && (string.IsNullOrEmpty(tagLine) || x.TagLine.ToLower().StartsWith(tagLine.ToLower())));
         }
         else
         {

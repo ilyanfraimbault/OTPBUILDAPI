@@ -6,3 +6,6 @@
 /obj/
 /.idea/
 /OTPBUILDAPI.*
+/compose.yaml
+/Dockerfile
+/.dockerignore
